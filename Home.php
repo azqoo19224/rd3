@@ -1,5 +1,6 @@
 <?php
 header("Countent-Type;text/html; charset=utf-8");
+
 require_once "DB.php";
 
 DB::pdoConnect();
@@ -10,7 +11,7 @@ $url = explode('?', $url[3]);
 $api = $url[0];
 
 class Response{
-    function formatError(){
+    function formatError() {
         $message = "format Error";
         $data = array("code" => "280",'message' => $message);
         $result = array("result"=>false,
@@ -21,20 +22,25 @@ class Response{
         
     }
     
-    function getUser() {
-        $message = "success";
-        $data = array("username"=>$_GET['username']);
-        $code = "4000";
-        $result = array(
-            'code' => $code,
-            'message' => $message,
+    function getaddUserSuccess() {
+        $data = array("code" => "4100","username"=>$_GET['username'], 'message' => "add Success");
+        $result = array("result"=>false,
             'data' => $data
         );
 
         return json_encode($result);
     }
     
-    function getBalance($balance){
+    function getaddUserError() {
+        $data = array("code" => "210","username"=>$_GET['username'], 'message' => "User repeat error");
+        $result = array("result"=>false,
+            'data' => $data
+        );
+
+        return json_encode($result);
+    }
+    
+    function getBalance($balance) {
         if($balance['name'] != null){
             $message = "success";
             $code = "4400";
@@ -51,7 +57,6 @@ class Response{
         return json_encode($result);
         }
     
-  
     function getUpdateOutError() {
         $data = array("code" => "220",'message' => "Out error Insufficient");
         $result = array("result"=>false,
@@ -61,7 +66,7 @@ class Response{
         return json_encode($result);
     }
     
-     function getUpdateError() {
+    function getUpdateError() {
         $data = array("code" => "240",'message' => "timeout");
         $result = array("result"=>false,
             'data' => $data
@@ -81,7 +86,9 @@ class Response{
 }
 
 class addUser{
+    
     function addUser(){
+        $Response1 = new Response;
         $balance = 10000;
         $version = 0;
         $insertA = DB::$db->prepare("INSERT `dataA` (`name`, `balance`, `version`) VALUES (?,?,?)");
@@ -89,11 +96,25 @@ class addUser{
         $insertA->bindParam(2, $balance);
         $insertA->bindParam(3, $version);
         $insertA->execute();
-        $insertB = DB::$db->prepare("INSERT `dataB` (`name`, `balance`, `version`) VALUES (?,?,?)");
-        $insertB->bindParam(1, $_GET['username']);
-        $insertB->bindParam(2, $balance);
-        $insertB->bindParam(3, $version);
-        $insertB->execute();
+        
+        //判斷版本號為0
+        $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
+        $searchUserA->bindParam(1, $_GET['username']);
+        $searchUserA->execute();
+        $userA = $searchUserA->fetch();
+        
+        // $insertB = DB::$db->prepare("INSERT `dataB` (`name`, `balance`, `version`) VALUES (?,?,?)");
+        // $insertB->bindParam(1, $_GET['username']);
+        // $insertB->bindParam(2, $balance);
+        // $insertB->bindParam(3, $version);
+        // $insertB->execute();
+
+ 
+        if ($userA["version"] == "0") {
+            return $Response1->getaddUserSuccess();
+        } else {
+            return $Response1->getaddUserError();
+        }
     }
 }
 
@@ -162,7 +183,7 @@ class updateBalance{
 }
 
 $Response = new Response;
-
+//新增帳號
 if($api == "addUser") {
     {
         if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
@@ -170,15 +191,14 @@ if($api == "addUser") {
             echo $result;
         } else {
             $addUser = new addUser;
-            $addUser->addUser();
-            $result = $Response->getUser();
+            $result = $addUser->addUser();
             echo $result;
         }
 
         
     }
 }
-
+//查詢餘額
 if($api == "getBalance" || $api == "getUserBalance") {
     $getBalance = new getBalance;
     
@@ -197,7 +217,7 @@ if($api == "getBalance" || $api == "getUserBalance") {
         echo $result;
     }
 }
-
+//轉帳
 if($api == "updateBalance") {
     if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username']) && !preg_match("/^([0-9]+)$/",$_GET['amount']) && ($_GET['type'] != "IN" || $_GET["type"] != "OUT")) {
         $result = $Response->formatError();
