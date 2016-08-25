@@ -1,4 +1,5 @@
 <?php
+header("Countent-Type;text/html; charset=utf-8");
 require_once "DB.php";
 
 DB::pdoConnect();
@@ -9,6 +10,17 @@ $url = explode('?', $url[3]);
 $api = $url[0];
 
 class Response{
+    function formatError(){
+        $message = "format Error";
+        $data = array("code" => "280",'message' => $message);
+        $result = array("result"=>false,
+            'data' => $data
+        );
+        
+        return json_encode($result);
+        
+    }
+    
     function getUser() {
         $message = "success";
         $data = array("username"=>$_GET['username']);
@@ -152,27 +164,47 @@ class updateBalance{
 $Response = new Response;
 
 if($api == "addUser") {
-    $addUser = new addUser;
-    $addUser->addUser();
-    $result = $Response->getUser();
-    echo $result;
+    {
+        if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
+            $result = $Response->formatError();
+            echo $result;
+        } else {
+            $addUser = new addUser;
+            $addUser->addUser();
+            $result = $Response->getUser();
+            echo $result;
+        }
+
+        
+    }
 }
 
 if($api == "getBalance" || $api == "getUserBalance") {
     $getBalance = new getBalance;
-    if($api == "getBalance") {
-        $balance = $getBalance->getBalance();
+    
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])) {
+        $result = $Response->formatError();
+        
+        echo $result;
     } else {
-        $balance = $getBalance->getUserBalance();
+        if($api == "getBalance") {
+            $balance = $getBalance->getBalance();
+        } else {
+            $balance = $getBalance->getUserBalance();
+        }
+    
+        $result = $Response->getBalance($balance);
+        echo $result;
     }
-    // $Response = new Response;
-    $result = $Response->getBalance($balance);
-    echo $result;
 }
 
 if($api == "updateBalance") {
-    $updateBalance = new updateBalance;
-    $result = $updateBalance->getUpdate();
-    echo $result;
-    
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username']) && !preg_match("/^([0-9]+)$/",$_GET['amount']) && ($_GET['type'] != "IN" || $_GET["type"] != "OUT")) {
+        $result = $Response->formatError();
+        echo $result;
+    } else {
+        $updateBalance = new updateBalance;
+        $result = $updateBalance->getUpdate();
+        echo $result;
+    }
 }
