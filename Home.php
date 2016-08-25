@@ -83,6 +83,22 @@ class Response{
 
         return json_encode($result);
     }
+    
+    function getCheckSuccess($userA) {
+        $data = array("code" => "4900",'message' => "success", "info" => $userA["info"], "username" => $userA["nameA"]);
+        $result = array("result"=>true,
+            'data' => $data
+        );
+
+        return json_encode($result);
+    }
+    
+    function getCheckError() {
+        $data = array("code" => "250",'message' => "No Data Found");
+        $result = array("result"=>false,
+            'data' => $data
+        );
+    }
 }
 
 class addUser{
@@ -168,6 +184,16 @@ class updateBalance{
         $updateA->execute();
 
         if ($updateA->rowCount()) {
+            $info = $_GET['type']."success";
+            $version = $userA["version"] + 1;
+            $insertA = DB::$db->prepare("INSERT `info` (`nameA`, `info`, `version`) VALUES (?,?,?)");
+            $insertA->bindParam(1, $_GET['username']);
+            $insertA->bindParam(2, $info);
+            $insertA->bindParam(3, $version);
+            $insertA->execute();
+            echo $info;
+            echo $version;
+            
             return $Response->getUpdateSuccess();
         } else {
             return $Response->getUpdateError();
@@ -179,6 +205,29 @@ class updateBalance{
         // $updateB->bindParam(3, $_GET['username']);
         // $updateB->bindParam(4, $userB["version"]);
         // $updateB->execute();
+    }
+}
+
+class checkTransfer{
+    function getCheckTransfer() {
+        $Response = new Response;
+        $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
+        $searchUserA->bindParam(1, $_GET['username']);
+        $searchUserA->execute();
+        $userA = $searchUserA->fetch();
+        
+        $searchUserA = DB::$db->prepare("SELECT * FROM `info` WHERE `nameA` = ? AND `version` = ?");
+        $searchUserA->bindParam(1, $_GET['username']);
+        $searchUserA->bindParam(2, $userA['version']);
+        $searchUserA->execute();
+        
+       if ($searchUserA->rowCount()) {
+            $userA = $searchUserA->fetch();
+            return $Response->getCheckSuccess($userA);
+       } else {
+            return $Response->getCheckError();
+       }
+    
     }
 }
 
@@ -225,6 +274,17 @@ if($api == "updateBalance") {
     } else {
         $updateBalance = new updateBalance;
         $result = $updateBalance->getUpdate();
+        echo $result;
+    }
+}
+//查詢
+if($api == "checkTransfer") {
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
+            $result = $Response->formatError();
+            echo $result;
+    } else {
+        $checkTransfer = new checkTransfer;
+        $result = $checkTransfer->getCheckTransfer();
         echo $result;
     }
 }
