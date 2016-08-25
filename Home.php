@@ -12,7 +12,7 @@ class Response{
     function getUser() {
         $message = "success";
         $data = array("username"=>$_GET['username']);
-        $code = "44000";
+        $code = "4000";
         $result = array(
             'code' => $code,
             'message' => $message,
@@ -25,23 +25,47 @@ class Response{
     function getBalance($balance){
         if($balance['name'] != null){
             $message = "success";
-            $code = "22000";
+            $code = "4400";
         } else {
             $message = "error";
-            $code = "440";
-        }
-            $result = $this->getReturn($code, $message, $data, $balance);
-            return $result;
+            $code = "200";
         }
 
-    function getReturn($code, $message, $data, $balance){
         $data = array("code" => $code,'message' => $message,"username"=>$balance['name'],"balance"=>$balance['balance']);
-        $result = array("result"=>"true",
+        $result = array("result"=>true,
             'data' => $data
         );
+        
+        return json_encode($result);
+        }
+    
+  
+    function getUpdateOutError() {
+        $data = array("code" => "220",'message' => "Out error Insufficient");
+        $result = array("result"=>false,
+            'data' => $data
+        );
+
         return json_encode($result);
     }
     
+     function getUpdateError() {
+        $data = array("code" => "240",'message' => "timeout");
+        $result = array("result"=>false,
+            'data' => $data
+        );
+
+        return json_encode($result);
+    }
+    
+    function getUpdateSuccess() {
+        $data = array("code" => "4200",'message' => "success", "type" => $_GET["type"], "username" => $_GET["username"], "amount" => $_GET["amount"]);
+        $result = array("result"=>true,
+            'data' => $data
+        );
+
+        return json_encode($result);
+    }
 }
 
 class addUser{
@@ -79,39 +103,58 @@ class getBalance{
 }
 
 class updateBalance{
-    function update(){
-        
+    function getUpdate(){
+        $Response = new Response;
         $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
         $searchUserA->bindParam(1, $_GET['username']);
         $searchUserA->execute();
         $userA = $searchUserA->fetch();
         
-        $searchUserB = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
-        $searchUserB->bindParam(1, $_GET['username']);
-        $searchUserB->execute();
-        $userB = $searchUserB->fetch();
-        
-        $updateA = DB::$db->prepare("UPDATE `dataA` `balance` = ?, `version` = ? WHERE `name` = ? AND WHERE `version` = ?");
-        $updateA->bindParam(1, $balance);
-        $updateA->bindParam(2, $userA["version"]++);
-        $updateA->bindParam(3, $_GET['username']);
-        $updateA->bindParam(4, $userA["version"]);
-        $updateA->execute();
-        
-        $updateB = DB::$db->prepare("UPDATE `dataA` `balance` = ?, `version` = ? WHERE `name` = ?");
-        $updateB->bindParam(1, $balance);
-        $updateB->bindParam(2, $userB["version"]++);
-        $updateB->bindParam(3, $_GET['username']);
-        $updateB->bindParam(4, $userB["version"]);
-        $updateB->execute();
+        if($_GET['type'] == "IN") {
+            $balance = $userA["balance"] + $_GET["amount"];
+        } else {
+            if(($userA["balance"] - $_GET["amount"]) >= 0 && $userA["balance"] >=0) {
+                $balance = $userA["balance"] - $_GET["amount"];
+            } else {
+                return $Response->getUpdateOutError($_GET['type']);
+            }
+            
         }
+        
+        // $searchUserB = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
+        // $searchUserB->bindParam(1, $_GET['username']);
+        // $searchUserB->execute();
+        // $userB = $searchUserB->fetch();
+        // var_dump($userA);
+
+    
+        $updateA = DB::$db->prepare("UPDATE `dataA` SET `balance` = :balance ,`version` = `version` + 1 WHERE `name` = :name AND `version` = :version");
+        $updateA->bindParam(":balance", $balance);
+        $updateA->bindParam(":name", $_GET['username']);
+        $updateA->bindParam(":version", $userA["version"]);
+        $updateA->execute();
+
+        if ($updateA->rowCount()) {
+            return $Response->getUpdateSuccess();
+        } else {
+            return $Response->getUpdateError();
+        }
+        
+        // $updateB = DB::$db->prepare("UPDATE `dataA` `balance` = ?, `version` = ? WHERE `name` = ?");
+        // $updateB->bindParam(1, $balance);
+        // $updateB->bindParam(2, $userB["version"]++);
+        // $updateB->bindParam(3, $_GET['username']);
+        // $updateB->bindParam(4, $userB["version"]);
+        // $updateB->execute();
+    }
 }
 
+$Response = new Response;
 
 if($api == "addUser") {
     $addUser = new addUser;
     $addUser->addUser();
-    $result = Response::getUser();
+    $result = $Response->getUser();
     echo $result;
 }
 
@@ -122,13 +165,14 @@ if($api == "getBalance" || $api == "getUserBalance") {
     } else {
         $balance = $getBalance->getUserBalance();
     }
-    $Response = new Response;
+    // $Response = new Response;
     $result = $Response->getBalance($balance);
     echo $result;
 }
 
 if($api == "updateBalance") {
-    
-    
+    $updateBalance = new updateBalance;
+    $result = $updateBalance->getUpdate();
+    echo $result;
     
 }
