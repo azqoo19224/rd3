@@ -38,3 +38,5 @@ checkTransfer metod
 參數2 (int)version
 
 範例:https://azqooo-azqoo19224.c9users.io/Api/Home.php/checkTransfer?username=Adam&version=7
+
+**如果版本號不確定或輸入不正確  會顯示錯誤訊息&&現有版本號
