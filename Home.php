@@ -262,7 +262,7 @@ if($api == "getBalance" || $api == "getUserBalance") {
 }
 //轉帳
 if($api == "updateBalance") {
-    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username']) && !preg_match("/^([0-9]+)$/",$_GET['amount']) && ($_GET['type'] != "IN" || $_GET["type"] != "OUT")) {
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'], $value) || $_GET['amount'] < 0 || !($_GET['type'] != "IN" || $_GET["type"] != "OUT")) {
         $result = $Response->formatError();
         echo $result;
     } else {
