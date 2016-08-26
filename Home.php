@@ -75,8 +75,8 @@ class Response{
         return json_encode($result);
     }
     
-    function getUpdateSuccess() {
-        $data = array("code" => "4200",'message' => "success", "type" => $_GET["type"], "username" => $_GET["username"], "amount" => $_GET["amount"]);
+    function getUpdateSuccess($version) {
+        $data = array("code" => "4200",'message' => "success", "type" => $_GET["type"], "username" => $_GET["username"], "amount" => $_GET["amount"], "version" => $version);
         $result = array("result"=>true,
             'data' => $data
         );
@@ -93,11 +93,16 @@ class Response{
         return json_encode($result);
     }
     
-    function getCheckError() {
-        $data = array("code" => "250",'message' => "No Data Found");
+    function getCheckError($user) {
+        foreach($user as $k){
+                $version .= "'".$k["version"]."'";
+            }
+
+        $data = array("code" => "250",'message' => "No Data Found","version"=>$version);
         $result = array("result"=>false,
             'data' => $data
         );
+        return json_encode($result);
     }
 }
 
@@ -182,7 +187,7 @@ class UpdateBalance{
         $updateA->execute();
         //判斷udateA是否有執行
         if ($updateA->rowCount()) {
-            $info = $_GET['type']."success";
+            $info = $_GET['type'].":".$_GET["amount"];
             $version = $userA["version"] + 1;
             $insertA = DB::$db->prepare("INSERT `info` (`nameA`, `info`, `version`) VALUES (?,?,?)");
             $insertA->bindParam(1, $_GET['username']);
@@ -190,7 +195,7 @@ class UpdateBalance{
             $insertA->bindParam(3, $version);
             $insertA->execute();
             
-            return $Response->getUpdateSuccess();
+            return $Response->getUpdateSuccess($version);
         } else {
             return $Response->getUpdateError();
         }
@@ -207,23 +212,25 @@ class UpdateBalance{
 class CheckTransfer{
     function getCheckTransfer() {
         $Response = new Response;
-        $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
-        $searchUserA->bindParam(1, $_GET['username']);
-        $searchUserA->execute();
-        $userA = $searchUserA->fetch();
+        // $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
+        // $searchUserA->bindParam(1, $_GET['username']);
+        // $searchUserA->execute();
+        // $userA = $searchUserA->fetchAll();
         
         $searchUserA = DB::$db->prepare("SELECT * FROM `info` WHERE `nameA` = ? AND `version` = ?");
         $searchUserA->bindParam(1, $_GET['username']);
-        $searchUserA->bindParam(2, $userA['version']);
+        $searchUserA->bindParam(2, $_GET['version']);
         $searchUserA->execute();
-        
-       if ($searchUserA->rowCount()) {
+        if ($searchUserA->rowCount()) {
             $userA = $searchUserA->fetch();
             return $Response->getCheckSuccess($userA);
-       } else {
-            return $Response->getCheckError();
+        } else {
+            $searchUser = DB::$db->prepare("SELECT * FROM `info` WHERE `nameA` = ?");
+            $searchUser->bindParam(1, $_GET['username']);
+            $searchUser->execute();
+            $user = $searchUser->fetchAll();
+            return $Response->getCheckError($user);
        }
-    
     }
 }
 
@@ -237,9 +244,7 @@ if($api == "addUser") {
     } else {
         $addUser = new AddUser;
         echo $result = $addUser->getAddUser();
-        // echo $result;
     }
-
 }
 //查詢餘額
 if($api == "getBalance" || $api == "getUserBalance") {
@@ -262,9 +267,11 @@ if($api == "getBalance" || $api == "getUserBalance") {
 }
 //轉帳
 if($api == "updateBalance") {
-    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'], $value) || $_GET['amount'] < 0 || !($_GET['type'] != "IN" || $_GET["type"] != "OUT")) {
-        $result = $Response->formatError();
-        echo $result;
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'], $value) || $_GET['amount'] < 0 || !($_GET['type'] === "IN" || $_GET["type"] === "OUT")) {
+   
+            $result = $Response->formatError();
+            echo $result;
+        
     } else {
         $updateBalance = new UpdateBalance;
         $result = $updateBalance->getUpdate();
@@ -273,7 +280,7 @@ if($api == "updateBalance") {
 }
 //查詢
 if($api == "checkTransfer") {
-    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username']) || !preg_match("/^([0-9]+)$/",$_GET['version'])){
             $result = $Response->formatError();
             echo $result;
     } else {
