@@ -145,13 +145,13 @@ class GetBalance{
         $balance = $searchUser->fetch();
         return $balance;
     }
-    function getUserBalance(){
-        $searchUser = DB::$db->prepare("SELECT * FROM `dataB` WHERE `name` = ?");
-        $searchUser->bindParam(1, $_GET['username']);
-        $searchUser->execute();
-        $balance = $searchUser->fetch();
-        return $balance;
-    }
+    // function getUserBalance(){
+    //     $searchUser = DB::$db->prepare("SELECT * FROM `dataB` WHERE `name` = ?");
+    //     $searchUser->bindParam(1, $_GET['username']);
+    //     $searchUser->execute();
+    //     $balance = $searchUser->fetch();
+    //     return $balance;
+    // }
 }
 
 class UpdateBalance{
@@ -172,14 +172,7 @@ class UpdateBalance{
             }
             
         }
-        
-        // $searchUserB = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
-        // $searchUserB->bindParam(1, $_GET['username']);
-        // $searchUserB->execute();
-        // $userB = $searchUserB->fetch();
-        // var_dump($userA);
 
-    
         $updateA = DB::$db->prepare("UPDATE `dataA` SET `balance` = :balance ,`version` = `version` + 1 WHERE `name` = :name AND `version` = :version");
         $updateA->bindParam(":balance", $balance);
         $updateA->bindParam(":name", $_GET['username']);
@@ -200,22 +193,12 @@ class UpdateBalance{
             return $Response->getUpdateError();
         }
         
-        // $updateB = DB::$db->prepare("UPDATE `dataA` `balance` = ?, `version` = ? WHERE `name` = ?");
-        // $updateB->bindParam(1, $balance);
-        // $updateB->bindParam(2, $userB["version"]++);
-        // $updateB->bindParam(3, $_GET['username']);
-        // $updateB->bindParam(4, $userB["version"]);
-        // $updateB->execute();
     }
 }
 
 class CheckTransfer{
     function getCheckTransfer() {
         $Response = new Response;
-        // $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
-        // $searchUserA->bindParam(1, $_GET['username']);
-        // $searchUserA->execute();
-        // $userA = $searchUserA->fetchAll();
         
         $searchUserA = DB::$db->prepare("SELECT * FROM `info` WHERE `nameA` = ? AND `version` = ?");
         $searchUserA->bindParam(1, $_GET['username']);
@@ -255,12 +238,8 @@ if($api == "getBalance" || $api == "getUserBalance") {
         
         echo $result;
     } else {
-        if($api == "getBalance") {
-            $balance = $getBalance->getBalance();
-        } else {
-            $balance = $getBalance->getUserBalance();
-        }
-    
+
+        $balance = $getBalance->getBalance();
         $result = $Response->getBalance($balance);
         echo $result;
     }
