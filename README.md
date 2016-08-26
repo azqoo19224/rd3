@@ -35,5 +35,6 @@ updateBalance method
 checkTransfer metod
 
 參數1 (string)username
+參數2 (int)version
 
-範例:https://azqooo-azqoo19224.c9users.io/Api/Home.php/checkTransfer?username=Adam
+範例:https://azqooo-azqoo19224.c9users.io/Api/Home.php/checkTransfer?username=Adam&version=7
