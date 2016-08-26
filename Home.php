@@ -24,7 +24,7 @@ class Response{
     
     function getaddUserSuccess() {
         $data = array("code" => "4100","username"=>$_GET['username'], 'message' => "add Success");
-        $result = array("result"=>false,
+        $result = array("result"=>true,
             'data' => $data
         );
 
@@ -101,40 +101,38 @@ class Response{
     }
 }
 
-class addUser{
-    
-    function addUser(){
+class AddUser{
+    function getAddUser() {
+        $search = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
+        $search->bindParam(1, $_GET['username']);
+        $search->execute();
+        $user = $search->fetch();
+   
         $Response1 = new Response;
-        $balance = 10000;
-        $version = 0;
-        $insertA = DB::$db->prepare("INSERT `dataA` (`name`, `balance`, `version`) VALUES (?,?,?)");
-        $insertA->bindParam(1, $_GET['username']);
-        $insertA->bindParam(2, $balance);
-        $insertA->bindParam(3, $version);
-        $insertA->execute();
         
-        //判斷版本號為0
-        $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
-        $searchUserA->bindParam(1, $_GET['username']);
-        $searchUserA->execute();
-        $userA = $searchUserA->fetch();
-        
-        // $insertB = DB::$db->prepare("INSERT `dataB` (`name`, `balance`, `version`) VALUES (?,?,?)");
-        // $insertB->bindParam(1, $_GET['username']);
-        // $insertB->bindParam(2, $balance);
-        // $insertB->bindParam(3, $version);
-        // $insertB->execute();
-
- 
-        if ($userA["version"] == "0") {
-            return $Response1->getaddUserSuccess();
-        } else {
+        if($user["name"] == $_GET['username']) {
             return $Response1->getaddUserError();
+        } else {
+            $balance = 10000;
+            $version = 0;
+            $insertA = DB::$db->prepare("INSERT `dataA` (`name`, `balance`, `version`) VALUES (?,?,?)");
+            $insertA->bindParam(1, $_GET['username']);
+            $insertA->bindParam(2, $balance);
+            $insertA->bindParam(3, $version);
+            $insertA->execute();
+
+            // $insertB = DB::$db->prepare("INSERT `dataB` (`name`, `balance`, `version`) VALUES (?,?,?)");
+            // $insertB->bindParam(1, $_GET['username']);
+            // $insertB->bindParam(2, $balance);
+            // $insertB->bindParam(3, $version);
+            // $insertB->execute();
+
+            return $Response1->getaddUserSuccess();
         }
     }
 }
 
-class getBalance{
+class GetBalance{
      function getBalance(){
         $searchUser = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
         $searchUser->bindParam(1, $_GET['username']);
@@ -151,7 +149,7 @@ class getBalance{
     }
 }
 
-class updateBalance{
+class UpdateBalance{
     function getUpdate(){
         $Response = new Response;
         $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
@@ -182,7 +180,7 @@ class updateBalance{
         $updateA->bindParam(":name", $_GET['username']);
         $updateA->bindParam(":version", $userA["version"]);
         $updateA->execute();
-
+        //判斷udateA是否有執行
         if ($updateA->rowCount()) {
             $info = $_GET['type']."success";
             $version = $userA["version"] + 1;
@@ -191,8 +189,6 @@ class updateBalance{
             $insertA->bindParam(2, $info);
             $insertA->bindParam(3, $version);
             $insertA->execute();
-            echo $info;
-            echo $version;
             
             return $Response->getUpdateSuccess();
         } else {
@@ -208,7 +204,7 @@ class updateBalance{
     }
 }
 
-class checkTransfer{
+class CheckTransfer{
     function getCheckTransfer() {
         $Response = new Response;
         $searchUserA = DB::$db->prepare("SELECT * FROM `dataA` WHERE `name` = ?");
@@ -234,22 +230,20 @@ class checkTransfer{
 $Response = new Response;
 //新增帳號
 if($api == "addUser") {
-    {
-        if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
-            $result = $Response->formatError();
-            echo $result;
-        } else {
-            $addUser = new addUser;
-            $result = $addUser->addUser();
-            echo $result;
-        }
-
-        
+    
+    if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])){
+        $result = $Response->formatError();
+        echo $result;
+    } else {
+        $addUser = new AddUser;
+        echo $result = $addUser->getAddUser();
+        // echo $result;
     }
+
 }
 //查詢餘額
 if($api == "getBalance" || $api == "getUserBalance") {
-    $getBalance = new getBalance;
+    $getBalance = new GetBalance;
     
     if(!preg_match("/^([0-9a-zA-Z]+)$/",$_GET['username'])) {
         $result = $Response->formatError();
@@ -272,7 +266,7 @@ if($api == "updateBalance") {
         $result = $Response->formatError();
         echo $result;
     } else {
-        $updateBalance = new updateBalance;
+        $updateBalance = new UpdateBalance;
         $result = $updateBalance->getUpdate();
         echo $result;
     }
@@ -283,7 +277,7 @@ if($api == "checkTransfer") {
             $result = $Response->formatError();
             echo $result;
     } else {
-        $checkTransfer = new checkTransfer;
+        $checkTransfer = new CheckTransfer;
         $result = $checkTransfer->getCheckTransfer();
         echo $result;
     }
