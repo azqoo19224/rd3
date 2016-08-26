@@ -10,6 +10,7 @@ addUser method
 
 範例:https://azqooo-azqoo19224.c9users.io/Api/Home.php/addUser?username=Rain
 
+**如果使用者重複   會顯示錯誤訊息
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -18,8 +19,6 @@ getBalance method
 參數1 (string)username
 
 範例:https://azqooo-azqoo19224.c9users.io/Api/Home.php/getBalance?username=Adam
-
-**如果使用者重複   會顯示錯誤訊息
 
 /////////////////////////////////////////////////////////////////////////////////////
 
